@@ -36,6 +36,8 @@ class EcgDataService extends ChangeNotifier {
   String? _profileImagePath;
   bool _isLoading = true;
   String? _birthDate;
+  String? _phoneNumber;
+  String? _address;
 
   String? get birthDate => _birthDate;
   List<EcgEntry> get entries => _entries;
@@ -59,6 +61,26 @@ class EcgDataService extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setPhoneNumber(String? number) {
+    _phoneNumber = number;
+    if (number != null) {
+      _saveToPrefs('phoneNumber', number);
+    } else {
+      _removeFromPrefs('phoneNumber');
+    }
+    notifyListeners();
+  }
+
+  void setAddress(String? addr) {
+    _address = addr;
+    if (addr != null) {
+      _saveToPrefs('address', addr);
+    } else {
+      _removeFromPrefs('address');
+    }
+    notifyListeners();
+  }
+
   void setProfileImagePath(String? path) {
     _profileImagePath = path;
     if (path != null) {
@@ -74,6 +96,8 @@ class EcgDataService extends ChangeNotifier {
     _userName = prefs.getString('username') ?? 'User';
     _profileImagePath = prefs.getString('profileImagePath');
     _birthDate = prefs.getString('birthDate');
+    _phoneNumber = prefs.getString('phoneNumber');
+    _address = prefs.getString('address');
     _isLoading = false;
     notifyListeners();
   }

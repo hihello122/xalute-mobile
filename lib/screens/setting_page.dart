@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'ecg_data_service.dart';
 import 'package:flutter_date_pickers/flutter_date_pickers.dart' as dp;
 import 'package:flutter/cupertino.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 
 class SettingPage extends StatefulWidget {
@@ -16,9 +17,13 @@ class SettingPage extends StatefulWidget {
   State<SettingPage> createState() => _SettingPageState();
 }
 
+//name, birthDate, phone, address
 class _SettingPageState extends State<SettingPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _birthdayController = TextEditingController();
+  final TextEditingController _phoneNumberController  = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
+
   final FocusNode _nameFocus = FocusNode();
   File? _profileImage;
   bool _hasChanges = false;
@@ -39,18 +44,37 @@ class _SettingPageState extends State<SettingPage> {
     final name = prefs.getString('username') ?? '';
     final birthday = prefs.getString('birthDate') ?? '';
     final imagePath = prefs.getString('profileImagePath');
+    final phoneNumber = prefs.getString('phoneNumber') ?? '';
+    final address = prefs.getString('address') ?? '';
+
+    // Firebase User 정보
+    final user = FirebaseAuth.instance.currentUser;
+    String firebaseName = '';
+    String firebaseEmail = '';
+    if (user != null) {
+      for (final providerProfile in user.providerData) {
+        if (providerProfile.providerId == 'google.com') {
+          firebaseName = providerProfile.displayName ?? '';
+          firebaseEmail = providerProfile.email ?? '';
+        }
+      }
+    }
 
     setState(() {
-      _nameController.text = name;
+      _nameController.text =  name.isNotEmpty ? name : firebaseName;
       _birthdayController.text = birthday;
+      _phoneNumberController.text = phoneNumber;
+      _addressController.text = address;
       if (imagePath != null) {
         _profileImage = File(imagePath);
       }
     });
 
     final ecgService = Provider.of<EcgDataService>(context, listen: false);
-    ecgService.setUserName(name);
-    ecgService.setBirthDate(birthday);
+    ecgService.setUserName(_nameController.text);
+    ecgService.setBirthDate(_birthdayController.text);
+    ecgService.setPhoneNumber(_phoneNumberController.text);
+    ecgService.setAddress(_addressController.text);
   }
 
   Future<void> _saveUserData() async {
@@ -58,10 +82,14 @@ class _SettingPageState extends State<SettingPage> {
 
     await prefs.setString('username', _nameController.text);
     await prefs.setString('birthDate', _birthdayController.text);
+    await prefs.setString('phoneNumber', _phoneNumberController.text);
+    await prefs.setString('address', _addressController.text);
 
     final ecgService = Provider.of<EcgDataService>(context, listen: false);
     ecgService.setUserName(_nameController.text);
     ecgService.setBirthDate(_birthdayController.text);
+    ecgService.setPhoneNumber(_phoneNumberController.text);
+    ecgService.setAddress(_addressController.text);
 
     if (_profileImage != null) {
       await prefs.setString('profileImagePath', _profileImage!.path);
@@ -190,6 +218,8 @@ class _SettingPageState extends State<SettingPage> {
   void dispose() {
     _nameController.dispose();
     _birthdayController.dispose();
+    _phoneNumberController.dispose();
+    _addressController.dispose();
     _nameFocus.dispose();
     super.dispose();
   }

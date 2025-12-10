@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ffi';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,14 +10,24 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'screens/ecg_data_service.dart';
 import 'screens/ecg_page.dart';
+import 'screens/api_client.dart';
+import 'screens/login_page.dart';
 import 'screens/setting_page.dart';
 import 'screens/ecg_detail_page.dart';
 import 'screens/ecg_detail_page.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  ApiClient().setupTokenListener();
 
   final ecgService = EcgDataService();
   await ecgService.loadInitialData();
@@ -188,8 +199,10 @@ class HealthApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: const EcgPage(),
+      home: _AuthCheckScreen(),
       routes: {
+        '/ecg': (context) => const EcgPage(),
+        '/login': (context) => const LoginPage(),
         '/settings': (context) => const SettingPage(),
       },
       onGenerateRoute: (settings) {
@@ -218,6 +231,44 @@ class HealthApp extends StatelessWidget {
         Locale('en', 'US'),
         Locale('ko', 'KR'),
       ],
+    );
+  }
+}
+
+
+
+class _AuthCheckScreen extends StatelessWidget {
+
+
+  Future<bool> hasSession() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+
+    // 서버 호출 전 최신 토큰 가져오기
+    try {
+      final idToken = await user.getIdToken();
+      // 서버에 idToken 보내서 JWT 발급 여부 확인 가능
+      // await apiClient.checkToken(idToken);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: hasSession(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          // 로딩 중
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        };
+
+        final hasSession = snapshot.data ?? false;
+        return hasSession ? const EcgPage() : const LoginPage();
+
+      },
     );
   }
 }
