@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,6 +17,36 @@ class SettingPage extends StatefulWidget {
   @override
   State<SettingPage> createState() => _SettingPageState();
 }
+
+class PhoneNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue,
+      TextEditingValue newValue) {
+    String digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+
+    String formatted = '';
+    if (digits.length <= 3) {
+      formatted = digits;
+    } else if (digits.length <= 7) {
+      formatted = '${digits.substring(0, 3)}-${digits.substring(3)}';
+    } else if (digits.length <= 11) {
+      formatted =
+      '${digits.substring(0, 3)}-${digits.substring(3, 7)}-${digits.substring(7)}';
+    } else {
+      // 11자리 초과하면 잘라 버림
+      digits = digits.substring(0, 11);
+      formatted =
+      '${digits.substring(0, 3)}-${digits.substring(3, 7)}-${digits.substring(7)}';
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
 
 //name, birthDate, phone, address
 class _SettingPageState extends State<SettingPage> {
@@ -105,6 +136,8 @@ class _SettingPageState extends State<SettingPage> {
       const SnackBar(content: Text("저장되었습니다.")),
     );
   }
+
+
 
   Future<void> _selectBirthday() async {
     DateTime initialDate = DateTime.tryParse(_birthdayController.text.replaceAll('.', '-')) ??
@@ -279,6 +312,33 @@ class _SettingPageState extends State<SettingPage> {
               ),
               onChanged: (_) => setState(() => _hasChanges = true),
             ),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text("전화번호", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _phoneNumberController,
+              keyboardType: TextInputType.phone,
+              inputFormatters: [
+                PhoneNumberFormatter(),     // ← 자동 포맷 적용
+              ],
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white,
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFFEFEFEF)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFFEFEFEF)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onChanged: (_) => setState(() => _hasChanges = true),
+            ),
+            const SizedBox(height: 20),
+            _buildTextField("주소", _addressController, null),
             const SizedBox(height: 20),
             const Align(
               alignment: Alignment.centerLeft,
@@ -322,6 +382,35 @@ class _SettingPageState extends State<SettingPage> {
           ],
         ),
       ),
+    );
+  }
+
+
+  Widget _buildTextField(String label, TextEditingController controller, FocusNode? focusNode, {TextInputType? keyboardType}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          focusNode: focusNode,
+          keyboardType: keyboardType,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.white,
+            enabledBorder: OutlineInputBorder(
+              borderSide: const BorderSide(color: Color(0xFFEFEFEF)),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: const BorderSide(color: Color(0xFFEFEFEF)),
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          onChanged: (_) => setState(() => _hasChanges = true),
+        ),
+      ],
     );
   }
 }

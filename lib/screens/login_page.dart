@@ -14,6 +14,33 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  bool _isLoading = false;
+
+  Future<void> _handleGoogleLogin() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final String? idToken = await signInAndGetIdToken();
+
+      if (idToken != null) {
+        Navigator.pushReplacementNamed(context, '/ecg');
+      } else {
+        debugPrint("Error: Firebase ID Token 획득 실패.");
+      }
+
+    } catch (e) {
+      debugPrint("Google login error: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
 
   Future<String?> signInAndGetIdToken() async {
     const String webClientId = "393654640908-tuhebsgvtf7j8vkouqjjvrunjn0rn8nb.apps.googleusercontent.com";
@@ -31,6 +58,8 @@ class _LoginPageState extends State<LoginPage> {
 
     final UserCredential userCredential = await _auth.signInWithCredential(credential);
     final User? user = userCredential.user;
+    final String? idToken = googleAuth.idToken;
+
 
     if (user != null) {
       for (final providerProfile in user.providerData) {
@@ -43,6 +72,7 @@ class _LoginPageState extends State<LoginPage> {
         final emailAddress = providerProfile.email;
         final profilePhoto = providerProfile.photoURL;
       }
+      return idToken;
     }
     return null;
   }
@@ -67,7 +97,9 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xFF800020),
-      body: Center(
+      body: Stack(
+          children: [
+            Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
@@ -90,6 +122,11 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 60),
               // 로그인 제목
 
+
+              if (!Platform.isIOS)
+                const SizedBox(height: 56),
+
+
               // Google 로그인 버튼 (스타일 개선)
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -104,21 +141,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   elevation: 0, // 그림자 추가
                 ),
-                onPressed: () async {
-                  try {
-                    final String? idToken = await signInAndGetIdToken();
-
-                    if (idToken != null) {
-                      // 3. AuthService를 사용해 서버에 토큰을 보내 JWT 받기
-                      Navigator.pushReplacementNamed(context, '/ecg');
-                    } else {
-                      // Firebase ID 토큰을 얻지 못한 경우 (인증 실패)
-                      debugPrint("Error: Firebase ID Token 획득 실패.");
-                    }
-                  } catch (e) {
-                    debugPrint("Google login error: $e");
-                  }
-                },
+                onPressed:  _handleGoogleLogin,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: const [
@@ -138,9 +161,6 @@ class _LoginPageState extends State<LoginPage> {
               ),
 
               const SizedBox(height: 20),
-
-              if (!Platform.isIOS)
-                const SizedBox(height: 56),
 
               // Apple 로그인 버튼 (높이 맞춤)
               if (Platform.isIOS)
@@ -181,6 +201,19 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
       ),
+
+            // 로딩 오버레이
+            if (_isLoading)
+              Container(
+                color: Colors.black.withOpacity(0.4),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+          ],
+      ), // ← 여기가 Stack 닫는 괄호
     );
   }
 }
