@@ -25,10 +25,13 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   ApiClient().setupTokenListener();
+
+
 
   final ecgService = EcgDataService();
   await ecgService.loadInitialData();
@@ -269,9 +272,10 @@ class _AuthCheckScreen extends StatelessWidget {
 
         final hasSession = snapshot.data ?? false;
 
-
         //return hasSession ? const EcgPage() : const LoginPage();
-        return const SurveyPage();
+
+        //return EcgPage();
+        return EcgPage();
       },
     );
   }

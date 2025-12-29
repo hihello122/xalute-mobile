@@ -29,7 +29,7 @@ dependencies:
   sign_in_with_apple: ^6.1.0
   jwt_decoder: ^2.0.1
   flutter_dotenv:  ^5.0.2
-
+  kpostal: ^1.1.0
 
 dev_dependencies:
   flutter_launcher_icons: ^0.13.1

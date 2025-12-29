@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -43,7 +44,9 @@ class _LoginPageState extends State<LoginPage> {
 
 
   Future<String?> signInAndGetIdToken() async {
-    const String webClientId = "393654640908-tuhebsgvtf7j8vkouqjjvrunjn0rn8nb.apps.googleusercontent.com";
+    await dotenv.load(fileName: "assets/env/.env");
+
+    String? webClientId = dotenv.env['GOOGLE_FIREBASE_KEY'] ?? '';
     final GoogleSignInAccount? googleUser = await GoogleSignIn(
       serverClientId: webClientId,
     ).signIn();

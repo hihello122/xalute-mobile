@@ -10,6 +10,7 @@ import 'package:flutter_date_pickers/flutter_date_pickers.dart' as dp;
 import 'package:flutter/cupertino.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:xalute/screens/api_client.dart';
+import 'package:kpostal/kpostal.dart';
 
 class SettingPage extends StatefulWidget {
   const SettingPage({super.key});
@@ -54,10 +55,16 @@ class _SettingPageState extends State<SettingPage> {
   final TextEditingController _birthdayController = TextEditingController();
   final TextEditingController _phoneNumberController  = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _detailedAddressController = TextEditingController();
 
   final FocusNode _nameFocus = FocusNode();
   File? _profileImage;
   bool _hasChanges = false;
+  bool _showRoadAddressField = false;
+  String postCode = '';
+  String roadAddress = '';
+  String jibunAddress = '';
+  String detailedAddress = '';
 
   @override
   void initState() {
@@ -95,7 +102,8 @@ class _SettingPageState extends State<SettingPage> {
       _nameController.text =  name.isNotEmpty ? name : firebaseName;
       _birthdayController.text = birthday;
       _phoneNumberController.text = phoneNumber;
-      _addressController.text = address;
+      _addressController.text = roadAddress;
+      _detailedAddressController.text = detailedAddress;
       if (imagePath != null) {
         _profileImage = File(imagePath);
       }
@@ -308,6 +316,11 @@ class _SettingPageState extends State<SettingPage> {
               controller: _nameController,
               focusNode: _nameFocus,
               decoration: InputDecoration(
+                hintText: "이름을 입력하세요",
+                hintStyle: const TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                ),
                 filled: true,
                 fillColor: Colors.white,
                 enabledBorder: OutlineInputBorder(
@@ -333,6 +346,11 @@ class _SettingPageState extends State<SettingPage> {
                 PhoneNumberFormatter(),     // ← 자동 포맷 적용
               ],
               decoration: InputDecoration(
+                hintText: "전화번호를 입력하세요",
+                hintStyle: const TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                ),
                 filled: true,
                 fillColor: Colors.white,
                 enabledBorder: OutlineInputBorder(
@@ -347,8 +365,116 @@ class _SettingPageState extends State<SettingPage> {
               onChanged: (_) => setState(() => _hasChanges = true),
             ),
             const SizedBox(height: 20),
-            _buildTextField("주소", _addressController, null),
+            GestureDetector(
+              onTap: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => KpostalView(
+                      useLocalServer: true,
+                      localPort: 1024,
+                      callback: (Kpostal result) {
+                        setState(() {
+                          postCode = result.postCode;
+                          roadAddress = result.address;
+                          jibunAddress = result.jibunAddress;
+
+                          // 🔥 주소 검색 결과 → address controller
+                          _addressController.text = roadAddress;
+
+                          // 🔥 상세주소가 이미 있으면 합치기
+                          if (_detailedAddressController.text.isNotEmpty) {
+                            _addressController.text =
+                            "$roadAddress ${_detailedAddressController.text}";
+                          }
+
+                          _hasChanges = true;
+                        });
+                      },
+                    ),
+                  ),
+                );
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "도로명 주소",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFEFEFEF)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            roadAddress.isNotEmpty
+                                ? roadAddress
+                                : "도로명 주소를 검색하세요",
+                            style: TextStyle(
+                              fontSize: 16,
+                              height: 1.5,
+                              color: roadAddress.isNotEmpty
+                                  ? Colors.black
+                                  : Colors.grey,
+                            ),
+                          ),
+                        ),
+                        const Icon(Icons.search, color: Colors.grey),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 20),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "상세주소",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _detailedAddressController,
+                decoration: InputDecoration(
+                  hintText: "상세주소를 입력하세요", // 🔥 처음에 보이는 회색 텍스트
+                  hintStyle: const TextStyle(
+                    color: Colors.grey,
+                    fontSize: 16,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(color: Color(0xFFEFEFEF)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(color: Color(0xFFEFEFEF)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    detailedAddress = value;
+                    _addressController.text =
+                    roadAddress.isNotEmpty
+                        ? "$roadAddress $detailedAddress"
+                        : detailedAddress;
+                    _hasChanges = true;
+                  });
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
             const Align(
               alignment: Alignment.centerLeft,
               child: Text("생년월일", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
@@ -394,6 +520,32 @@ class _SettingPageState extends State<SettingPage> {
     );
   }
 
+  Widget _buildReadOnlyField(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: TextEditingController(text: value),
+          readOnly: true,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.white,
+            enabledBorder: OutlineInputBorder(
+              borderSide: const BorderSide(color: Color(0xFFEFEFEF)),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: const BorderSide(color: Color(0xFFEFEFEF)),
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
 
   Widget _buildTextField(String label, TextEditingController controller, FocusNode? focusNode, {TextInputType? keyboardType}) {
     return Column(
@@ -417,7 +569,7 @@ class _SettingPageState extends State<SettingPage> {
               borderRadius: BorderRadius.circular(8),
             ),
           ),
-          onChanged: (_) => setState(() => _hasChanges = true),
+          onChanged: (value) => setState(() => _hasChanges = true),
         ),
       ],
     );
