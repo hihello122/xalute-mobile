@@ -9,7 +9,7 @@ import 'ecg_data_service.dart';
 import 'package:flutter_date_pickers/flutter_date_pickers.dart' as dp;
 import 'package:flutter/cupertino.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+import 'package:xalute/screens/api_client.dart';
 
 class SettingPage extends StatefulWidget {
   const SettingPage({super.key});
@@ -109,6 +109,8 @@ class _SettingPageState extends State<SettingPage> {
   }
 
   Future<void> _saveUserData() async {
+    final api = ApiClient();
+
     final prefs = await SharedPreferences.getInstance();
 
     await prefs.setString('username', _nameController.text);
@@ -135,6 +137,13 @@ class _SettingPageState extends State<SettingPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("저장되었습니다.")),
     );
+
+    final response = await api.post(
+      "auth/login",
+      body: {"email": "test@example.com", "password": "1234"},
+    );
+
+    print(response.body);
   }
 
 

@@ -63,4 +63,8 @@ class ApiClient {
   Future<http.Response> get(String path) async {
     return await _executeRequest(path, 'GET');
   }
+
+  Future<http.Response> put(String path) async {
+    return await _executeRequest(path, 'PUT');
+  }
 }

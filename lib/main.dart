@@ -14,7 +14,7 @@ import 'screens/api_client.dart';
 import 'screens/login_page.dart';
 import 'screens/setting_page.dart';
 import 'screens/ecg_detail_page.dart';
-import 'screens/ecg_detail_page.dart';
+import 'screens/survey_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -265,10 +265,13 @@ class _AuthCheckScreen extends StatelessWidget {
           // 로딩 중
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         };
+        final api = ApiClient();
 
         final hasSession = snapshot.data ?? false;
-        return hasSession ? const EcgPage() : const LoginPage();
 
+
+        //return hasSession ? const EcgPage() : const LoginPage();
+        return const SurveyPage();
       },
     );
   }
